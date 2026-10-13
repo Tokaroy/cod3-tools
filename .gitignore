@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+# extracted game data never goes in this repository
+*.cod
+*.xex
+*.img
+*.rdc
+*.draws
+*.wbk
+*.png
+*.obj
+*.mtl

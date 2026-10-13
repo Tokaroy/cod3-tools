@@ -1,0 +1,6 @@
+numpy
+Pillow
+opencv-python
+cryptography
+unicorn
+capstone
