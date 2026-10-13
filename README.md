@@ -19,9 +19,9 @@ actually draws.
 | What | State |
 |---|---|
 | Archives (`.cod`) | Unpacked fully (KAPF container, LZO1X chunks, APKF asset packs). |
-| Asset pack layout | **Exact, from the pack header** (`apkf.py`): where every record and every block of GPU data sits. Checked on all 34,869 texture records on the disc and on every mesh block in a 60-pack sample (762 of 762). |
-| Meshes (`.xemesh`, `.xecell`) | Read from the game's own surface records. Verified **exact** against the running game for every model captured so far (47 models in Mayenne multiplayer, including world geometry and a multi-part weapon viewmodel). Not every model has been captured yet. |
-| Multi-part models | Placed from animation skeletons (`.xeskel` rest pose, computed by running the title's own skeleton code in an emulator). Several vehicles have **no skeleton anywhere on the disc**, so their parts can't be placed yet (WC51, Harley, Kübelwagen, M5 Stuart, Tiger I, Panther, Kangaroo, Sherman M4A3). |
+| Asset pack layout | **Exact, from the pack header** (`apkf.py`): where every record and every block of GPU data sits. Checked on all 34,869 texture records on the disc; every one of the 30,386 mesh blocks is placed from it too (each checked against its surfaces' stored bounds). |
+| Meshes (`.xemesh`, `.xecell`) | Read from the game's own surface records, at the GPU position the pack header gives (an earlier search could land a vertex or two off and scramble the triangles). Verified **exact** against the running game for every model captured so far (47 models in Mayenne multiplayer, including world geometry and a multi-part weapon viewmodel). Not every model has been captured yet. |
+| Multi-part models | Placed from animation skeletons (`.xeskel` rest pose, computed by running the title's own skeleton code in an emulator). Weapons are posed with the first frame of their own idle animation when it has been decoded, so animated parts sit where the game holds them (a bazooka's rocket in the tube); parts the idle pose parks away from the gun (a spent shell) are left out and listed as `hidden` in `models.json`. Several vehicles have **no skeleton anywhere on the disc**, so their parts can't be placed yet (WC51, Harley, Kübelwagen, M5 Stuart, Tiger I, Panther, Kangaroo, Sherman M4A3). |
 | Textures (`.xetex`) | Xenos-tiled DXT1/DXT3/DXT5/A8R8G8B8, byte-swapped, each at the exact position the pack header gives. Compared with a community HD set made from correctly decoded originals, the character and weapon textures match at 0.95 on average (most at 0.99-1.00). |
 | Texture → material links | Mostly from the material records; soldier heads/bodies are filled in at runtime from placeholders, which the linker resolves the same way. 99.4% of surfaces get a texture. **A few models still get the wrong texture or none** (e.g. the C-47, a Sherman wreck, a Flakvierling variant). |
 | Sounds (`.wbk`, Treyarch NSLB) | Extracted with names through vgmstream. |
@@ -68,6 +68,7 @@ Python 3.11+, `pip install -r requirements.txt`. For sounds: [vgmstream](https:/
 
 ```
 python -I cod3/extract_all.py <disc folder> <work>/models        # unpack every archive's packs
+python -I cod3/extract_anims.py <work>/models <work>/anims_weapons <weapon archive> ...   # optional: weapon idle poses
 python -I cod3/extract_models.py <work>/models                   # every .xemesh/.xecell -> OBJ, by name
 python -I cod3/extract_textures.py <work>/models                 # every texture -> PNG, by name
 python -I cod3/link_textures.py <work>/models                    # material -> colour texture (.mtl)

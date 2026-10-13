@@ -1,3 +1,190 @@
 {
- "_textures": {}
+ "_textures": {},
+ "v_flakvierling_d1.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "v_flackvierling_d1_c"
+   }
+  },
+  "note": "name guessing gave the Flak 88 shell textures ('flakvierling' vs the textures' 'flackvierling'); its own burnt sheet, as the undamaged one binds v_flackvierling_c"
+ },
+ "stuka_bomb.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "metal$bomb"
+   }
+  },
+  "note": "its one material is called wood_sled, which matched the bomb crate's wood/straw sheet; the bomb is plain metal"
+ },
+ "bazooka_projectile.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "w_bazooka_c"
+   }
+  },
+  "note": "name guessing gave sandbags ('pro'); the rocket's fins and warhead land on the bazooka sheet"
+ },
+ "v_c47.xemesh": {
+  "surfaces": {
+   "0": {
+    "texture": "v_c47_propeller"
+   },
+   "2": {
+    "texture": "v_c47_propeller"
+   }
+  },
+  "note": "the 'prop' surfaces are the propeller discs (name guessing gave a concrete wall); the C-47's body texture isn't on the disc"
+ },
+ "c_fallsh_i_ng_gear1_lod2.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "of_c_fallsh_body1_c"
+   }
+  },
+  "note": "the gear binds only a normal swatch; name guessing gave the multiplayer gear sheet, but its kit (shovel, gas mask can, bread bag) is painted on the Fallschirmjager body sheet"
+ },
+ "c_fallsh_i_ng_gear1_lod3.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "of_c_fallsh_body1_c"
+   }
+  },
+  "note": "the gear binds only a normal swatch; name guessing gave the multiplayer gear sheet, but its kit (shovel, gas mask can, bread bag) is painted on the Fallschirmjager body sheet"
+ },
+ "c_fallsh_i_ng_gear1_lod4.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "of_c_fallsh_body1_c"
+   }
+  },
+  "note": "the gear binds only a normal swatch; name guessing gave the multiplayer gear sheet, but its kit (shovel, gas mask can, bread bag) is painted on the Fallschirmjager body sheet"
+ },
+ "c_fallsh_i_ng_gear2_lod2.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "of_c_fallsh_body1_c"
+   }
+  },
+  "note": "the gear binds only a normal swatch; name guessing gave the multiplayer gear sheet, but its kit (shovel, gas mask can, bread bag) is painted on the Fallschirmjager body sheet"
+ },
+ "c_fallsh_i_ng_gear2_lod3.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "of_c_fallsh_body1_c"
+   }
+  },
+  "note": "the gear binds only a normal swatch; name guessing gave the multiplayer gear sheet, but its kit (shovel, gas mask can, bread bag) is painted on the Fallschirmjager body sheet"
+ },
+ "c_fallsh_i_ng_gear2_lod4.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "of_c_fallsh_body1_c"
+   }
+  },
+  "note": "the gear binds only a normal swatch; name guessing gave the multiplayer gear sheet, but its kit (shovel, gas mask can, bread bag) is painted on the Fallschirmjager body sheet"
+ },
+ "c_fallsh_i_ng_gear3_lod2.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "of_c_fallsh_body1_c"
+   }
+  },
+  "note": "the gear binds only a normal swatch; name guessing gave the multiplayer gear sheet, but its kit (shovel, gas mask can, bread bag) is painted on the Fallschirmjager body sheet"
+ },
+ "c_fallsh_i_ng_gear3_lod3.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "of_c_fallsh_body1_c"
+   }
+  },
+  "note": "the gear binds only a normal swatch; name guessing gave the multiplayer gear sheet, but its kit (shovel, gas mask can, bread bag) is painted on the Fallschirmjager body sheet"
+ },
+ "c_fallsh_i_ng_gear3_lod4.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "of_c_fallsh_body1_c"
+   }
+  },
+  "note": "the gear binds only a normal swatch; name guessing gave the multiplayer gear sheet, but its kit (shovel, gas mask can, bread bag) is painted on the Fallschirmjager body sheet"
+ },
+ "c_polinf_ng_helm1_lod2.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_polinf_head1_c"
+   }
+  },
+  "note": "name guessing gave the Polish tank crew helmet sheet (its top landed on black); the infantry helmet is painted on the Polish head sheet, like the US helmets"
+ },
+ "c_polinf_ng_helm1_lod3.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_polinf_head1_c"
+   }
+  },
+  "note": "name guessing gave the Polish tank crew helmet sheet (its top landed on black); the infantry helmet is painted on the Polish head sheet, like the US helmets"
+ },
+ "c_polinf_ng_helm1_lod4.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_polinf_head1_c"
+   }
+  },
+  "note": "name guessing gave the Polish tank crew helmet sheet (its top landed on black); the infantry helmet is painted on the Polish head sheet, like the US helmets"
+ },
+ "c_uspriv_ng_lod2_helmmp1.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_uspriv_head1_c"
+   }
+  },
+  "note": "painted on the head sheet like helm1/helm2; on the net helmet sheet 17% of its UVs land on black"
+ },
+ "c_uspriv_ng_lod2_helmmpm.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_uspriv_head3_c"
+   }
+  },
+  "note": "the medic helmet is painted on head sheet 3 (red crosses); on the net helmet sheet 17% of its UVs land on black"
+ },
+ "c_uspriv_ng_lod3_helmmp1.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_uspriv_head1_c"
+   }
+  },
+  "note": "painted on the head sheet like helm1/helm2; on the net helmet sheet 17% of its UVs land on black"
+ },
+ "c_uspriv_ng_lod3_helmmpm.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_uspriv_head3_c"
+   }
+  },
+  "note": "the medic helmet is painted on head sheet 3 (red crosses); on the net helmet sheet 17% of its UVs land on black"
+ },
+ "c_uspriv_ng_lod4_helmmp1.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_uspriv_head1_c"
+   }
+  },
+  "note": "painted on the head sheet like helm1/helm2; on the net helmet sheet 17% of its UVs land on black"
+ },
+ "c_uspriv_ng_lod4_helmmpm.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_uspriv_head3_c"
+   }
+  },
+  "note": "the medic helmet is painted on head sheet 3 (red crosses); on the net helmet sheet 17% of its UVs land on black"
+ },
+ "w_fg42_world_noscope.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "w_fg42_world_c"
+   }
+  },
+  "note": "name guessing gave the scope's texture; it uses the FG42 world sheet like the scoped world model"
+ }
 }

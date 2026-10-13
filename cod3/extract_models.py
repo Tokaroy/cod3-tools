@@ -21,6 +21,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import apkf  # noqa: E402
 import cod3_parts as PT  # noqa: E402
 import cod3_xemesh as X  # noqa: E402
 
@@ -59,6 +60,69 @@ def write_obj(path: Path, parts):
     path.write_text("\n".join(lines) + "\n")
 
 
+def header_bases(d, data0, groups):
+    """{mesh object word offset: GPU block start}. From the pack header (apkf.py: exact) for every object
+    whose block fits its surfaces' stored bounds there; searched (cod3_xemesh.object_bases) only for the
+    rest. A searched block can land a vertex or two off and still fit the bounds - the triangles then join
+    the wrong vertices (long slivers), as the scoped FG42 world model's third surface did."""
+    objs = {w: list(g) for surfs in groups for w, g in itertools.groupby(surfs, key=lambda s: s["object"])}
+    out = {}
+    try:
+        lay = apkf.layout(d)
+        meshes = sorted((o for o in lay.objects if o.gpu is not None), key=lambda o: o.record)
+        starts = [o.record for o in meshes]
+        import bisect
+        for w, g in objs.items():
+            rec = data0 + 4 * w
+            k = bisect.bisect_right(starts, rec) - 1
+            if k >= 0 and rec < meshes[k].record + meshes[k].record_size and X.fits(d, meshes[k].gpu, g):
+                out[w] = meshes[k].gpu
+    except Exception:
+        pass
+    HEADER_STATS["header"] += len(out)
+    if len(out) < len(objs):
+        searched = X.object_bases(d, data0, groups)
+        HEADER_STATS["searched"] += sum(1 for w in objs if w not in out and searched.get(w) is not None)
+        for w in objs:
+            if w in out:
+                if searched.get(w) is not None and searched[w] != out[w]:
+                    HEADER_STATS["differ"] += 1
+            elif searched.get(w) is not None:
+                out[w] = searched[w]
+    return out
+
+
+HEADER_STATS = {"header": 0, "searched": 0, "differ": 0}
+
+
+PARKED_MARGIN = 6.0  # inches
+
+
+def parked(parts):
+    """Surfaces (indices) of parts an idle pose keeps away from the weapon: a weapon's idle animation moves
+    what it isn't showing (a spent shell, a rocket not yet loaded) clear of the gun. A part whose box is
+    more than PARKED_MARGIN from the main part's (the part with the most vertices) is left out."""
+    import numpy as np
+    by_part = {}
+    for i, p in enumerate(parts):
+        by_part.setdefault(p.get("part"), []).append(i)
+    if len(by_part) < 2:
+        return set()
+    def box(idx):
+        P = np.concatenate([parts[i]["pos"] for i in idx])
+        return P.min(0), P.max(0)
+    main = max(by_part, key=lambda k: sum(len(parts[i]["pos"]) for i in by_part[k]))
+    lo, hi = box(by_part[main])
+    drop = set()
+    for k, idx in by_part.items():
+        if k == main:
+            continue
+        a, b = box(idx)
+        if ((a > hi + PARKED_MARGIN) | (b < lo - PARKED_MARGIN)).any():
+            drop.update(idx)
+    return drop
+
+
 def export_archive(archive: Path):
     manifest = json.loads((archive / "manifest.json").read_text())
     files = manifest["files"]
@@ -78,7 +142,7 @@ def export_archive(archive: Path):
             if named:
                 print(f"    ! {path.name}: no mesh records for {len(named)} listed models", flush=True)
             continue
-        bases = {w: (d, b) for w, b in X.object_bases(d, data0, groups).items() if b is not None}
+        bases = {w: (d, b) for w, b in header_bases(d, data0, groups).items()}
         lower_lods = X.lod_replacements(d, data0, groups)
         names = X.name_table(d, data0)
         pack_names[path.stem] = names
@@ -137,6 +201,7 @@ def export_archive(archive: Path):
                                   f"rot-diag {np.round(np.diag(R), 2)} moved={moved} now {np.round(lo, 1)}..{np.round(hi, 1)}")
                     elif DEBUG_PARTS and DEBUG_PARTS in name.lower():
                         print(f"    {str(part_of.get(w)):24} (no bone) {np.round(m['pos'].min(0), 1)}..{np.round(m['pos'].max(0), 1)}")
+                    m["part"] = part_of.get(w)
                     parts.append(m)
                     try:
                         mat = X.material(d, data0, s["material"], names)
@@ -151,6 +216,12 @@ def export_archive(archive: Path):
                     if bone.startswith("tag_wheel") and bone not in have:
                         parts.append(dict(src, pos=src["pos"] @ R + t))
                         mats.append(mats[k] if k < len(mats) else {"name": None, "textures": {}})
+            hidden = []
+            if placement and skeletons.posed_by_idle:
+                drop = parked(parts)
+                hidden = sorted({parts[i].get("part") or "?" for i in drop})
+                parts = [p for i, p in enumerate(parts) if i not in drop]
+                mats = [m for i, m in enumerate(mats) if i not in drop]
             if not parts:
                 print(f"    ! {name}: vertex data not found", flush=True)
                 continue
@@ -162,7 +233,7 @@ def export_archive(archive: Path):
             listing.append({"name": name, "file": fn, "pack": path.stem, "data": sorted(src) or [path.stem],
                             "surfaces": len(parts), "of_surfaces": len(surfs), "materials": mats,
                             "skinned": any(p["bones"] is not None for p in parts),
-                            "placed": sorted(placement),
+                            "placed": sorted(placement), **({"hidden": hidden} if hidden else {}),
                             "verts": int(sum(len(p["pos"]) for p in parts)),
                             "tris": int(sum(len(p["tris"]) for p in parts))})
     (out / "models.json").write_text(json.dumps(listing, indent=1))
@@ -192,4 +263,4 @@ if __name__ == "__main__":
             print(f"{a.relative_to(root)}: {len(got)} models ({time.time() - t0:.0f} s)", flush=True)
         except Exception as e:
             print(f"{a.relative_to(root)}: FAILED {e!r}", flush=True)
-    print(f"Done: {total} models", flush=True)
+    print(f"Done: {total} models; mesh blocks placed from the header {HEADER_STATS['header']}, searched {HEADER_STATS['searched']}", flush=True)

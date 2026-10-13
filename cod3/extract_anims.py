@@ -97,15 +97,21 @@ def main():
     print("skeletons:", {k: hex(v) for k, v in skel_at.items()}, flush=True)
     t0 = time.time()
     for arch in archives:
-        for pack in sorted((root_dir / arch / "packs").glob("*.bin")):
-            data = pack.read_bytes()
+        packs = {pack: pack.read_bytes() for pack in sorted((root_dir / arch / "packs").glob("*.bin"))}
+        # skeletons: the shared ones in sp/global, else the archive's own (weapons carry theirs: 30cal, k98 ...)
+        local = {name: (data, o) for data in packs.values() for name, o in find_skeletons(data).items()}
+        for pack, data in packs.items():
             for fo in anim_files(data):
                 skel_name = data[fo + 0x4C:fo + 0x68].split(b"\0")[0].decode("latin1")
-                if skel_name not in skel_at:
+                if skel_name in skel_at:
+                    skel_data, skel_off = glob, skel_at[skel_name]
+                elif skel_name in local:
+                    skel_data, skel_off = local[skel_name]
+                else:
                     print(f"  {arch}/{pack.name} @{fo:x}: skeleton {skel_name!r} not found", flush=True)
                     continue
                 dec = A.AnimDecoder()  # fresh emulator per file keeps memory small
-                dec.load_skeleton(glob, skel_at[skel_name])
+                dec.load_skeleton(skel_data, skel_off)
                 bones, parents, elems = skeleton_info(dec)
                 folder = out / skel_name
                 folder.mkdir(parents=True, exist_ok=True)

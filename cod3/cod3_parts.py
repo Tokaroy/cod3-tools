@@ -64,8 +64,11 @@ def find_skeletons(d):
     return out
 
 
-def rest_pose(d, off):
-    """{bone name: (3x3 world rotation, world position)} of the skeleton at `off`, via the game's init."""
+def rest_pose(d, off, frame=None):
+    """{bone name: (3x3 world rotation, world position)} of the skeleton at `off`, via the game's init.
+    `frame` = (local rotations (bones, 4), local positions (bones, 3)), e.g. a weapon's idle animation
+    (extract_anims.py; NaN = not animated): where given, they replace the rest values - the pose the game
+    shows the model in, with animated parts (a bazooka's rocket, a shotgun's shell) in place."""
     import cod3_anim as A
     dec = A.AnimDecoder()
     dec.load_skeleton(d, off)
@@ -94,6 +97,12 @@ def rest_pose(d, off):
             rot[b] = v
         elif kind == b"position":
             pos[b] = v[:3]
+    if frame is not None and len(frame[0]) == nb:
+        for i in range(nb):
+            if np.isfinite(frame[0][i]).all() and abs(np.linalg.norm(frame[0][i]) - 1) < 0.01:
+                rot[i] = np.asarray(frame[0][i], dtype=np.float64)
+            if np.isfinite(frame[1][i]).all():
+                pos[i] = np.asarray(frame[1][i], dtype=np.float64)
     world = {}
     for i in range(nb):
         R, t = qmat(rot[i]), pos[i]
@@ -159,6 +168,19 @@ class ArchiveSkeletons:
                 rel, off, names = copies[0]
                 self.others.append((name, set(n.lower() for n in names), Path(models_root) / rel, off))
         self._poses = {}
+        self._idle = {}
+        self.posed_by_idle = False  # whether the last placement() used an idle animation frame
+        # decoded weapon animations (extract_anims.py <root> <models root's parent>/anims_weapons <weapon archive>)
+        self.anims = Path(models_root).parent / "anims_weapons" if models_root else None
+
+    def idle_frame(self, skeleton):
+        """First frame of the skeleton's idle animation (not the aim-down-sights one), if decoded."""
+        if skeleton not in self._idle:
+            folder = self.anims / skeleton if self.anims else None
+            idle = sorted(p for p in folder.glob("*idle*.npz") if "ads" not in p.stem.lower())                 if folder is not None and folder.is_dir() else []
+            z = np.load(idle[0]) if idle else None
+            self._idle[skeleton] = (z["rot"][0], z["pos"][0]) if z is not None else None
+        return self._idle[skeleton]
 
     def placement(self, part_names, model=""):
         """{part name: (R, t)} from the model's own skeleton (named after it, in this archive or any other),
@@ -181,11 +203,13 @@ class ArchiveSkeletons:
             hits = sum(1 for n in specific if n in bones)
             if hits < 2 or hits * 2 < len(specific):
                 return {}
+        self.posed_by_idle = self.idle_frame(name) is not None
         key = (str(d) if isinstance(d, Path) else id(d), off)
         if key not in self._poses:
             try:
                 self._poses[key] = {k.lower(): v for k, v in
-                                    rest_pose(d.read_bytes() if isinstance(d, Path) else d, off).items()}
+                                    rest_pose(d.read_bytes() if isinstance(d, Path) else d, off,
+                                              self.idle_frame(name)).items()}
             except Exception:
                 self._poses[key] = {}
         pose = self._poses[key]

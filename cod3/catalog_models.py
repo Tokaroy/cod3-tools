@@ -35,33 +35,57 @@ def category(name: str) -> str:
     return "props"
 
 
-def drop_hulls(lines):
-    """Leave out simple hull surfaces (shadow/occlusion shapes): under 64 vertices yet spanning at least
-    90% of the whole model on every axis. Drawn opaque they hide the model."""
+def drop_hulls(lines, collision=()):
+    """Leave out surfaces that aren't drawn: collision hulls (surface numbers in `collision`, the linker's
+    "collision" surfaces) and simple hull surfaces (shadow/occlusion shapes): under 64 vertices yet spanning
+    at least 90% of the whole model on every axis. Drawn opaque they hide the model. A model is never left
+    without surfaces: the size test only drops a surface while another one remains."""
     import numpy as np
     verts = np.array([[float(x) for x in l.split()[1:4]] for l in lines if l.startswith("v ")] or [[0, 0, 0]])
     full = np.ptp(verts, 0) + 1e-6
-    out, block, used = [], [], set()
-
-    def flush():
-        if not block:
-            return
-        idx = {int(t.split("/")[0]) - 1 for l in block if l.startswith("f ") for t in l.split()[1:4]}
-        if idx and len(idx) < 64 and (np.ptp(verts[sorted(idx)], 0) >= 0.9 * full).all():
-            out.extend(l for l in block if not l.startswith("f "))  # keep vertices (indices stay valid)
-        else:
-            out.extend(block)
-
+    head, blocks = [], []
     for l in lines:
         if l.startswith("g "):
-            flush()
-            block = [l]
-        elif block:
-            block.append(l)
+            blocks.append([l])
+        elif blocks:
+            blocks[-1].append(l)
         else:
-            out.append(l)
-    flush()
+            head.append(l)
+
+    def faces(block):
+        return {int(t.split("/")[0]) - 1 for l in block if l.startswith("f ") for t in l.split()[1:4]}
+
+    def number(block):
+        m = re.match(r"g surface(\d+)", block[0])
+        return int(m.group(1)) if m else -1
+
+    drop = {i for i, b in enumerate(blocks) if number(b) in collision}
+    for i, b in enumerate(blocks):
+        idx = faces(b)
+        others = [j for j, o in enumerate(blocks) if j != i and j not in drop and faces(o)]
+        if i not in drop and others and idx and len(idx) < 64 and (np.ptp(verts[sorted(idx)], 0) >= 0.9 * full).all():
+            drop.add(i)
+    out = list(head)
+    for i, b in enumerate(blocks):
+        out.extend(l for l in b if not (i in drop and l.startswith("f ")))  # keep vertices (indices stay valid)
     return out
+
+
+_ALPHA = {}
+
+
+def see_through(png):
+    """Whether a texture has see-through parts (alpha below half on at least 2% of it) - written as map_d so
+    viewers like Blender use its alpha."""
+    if png not in _ALPHA:
+        from PIL import Image
+        import numpy as np
+        try:
+            im = Image.open(png)
+            _ALPHA[png] = im.mode in ("RGBA", "LA") and float((np.asarray(im.getchannel("A")) < 128).mean()) >= 0.02
+        except Exception:
+            _ALPHA[png] = False
+    return _ALPHA[png]
 
 
 def main():
@@ -89,7 +113,8 @@ def main():
         files = [x.get("file") for x in links_cache[archive].get(m["name"], [])]  # a per-model copy choice
         obj = (archive / "models" / m["file"]).read_text().splitlines()
         obj = [f"mtllib {out.stem}.mtl" if l.startswith("mtllib") else l for l in obj]
-        obj = drop_hulls(obj)
+        collision = {k for k, x in enumerate(links_cache[archive].get(m["name"], [])) if x.get("how") == "collision"}
+        obj = drop_hulls(obj, collision)
         out.write_text("\n".join(obj) + "\n")
         mtl = []
         for k in range(m["surfaces"]):
@@ -103,11 +128,18 @@ def main():
                     shutil.copyfile(root / src, dest / "textures" / fn)
                     copied.add(fn)
                 mtl.append(f"map_Kd ../textures/{fn}")
+                if see_through(dest / "textures" / fn):  # propeller discs, camo nets, foliage
+                    mtl.append(f"map_d ../textures/{fn}")
         out.with_suffix(".mtl").write_text("\n".join(mtl) + "\n")
         catalog.append({"name": key, "category": cat, "file": str(out.relative_to(dest)).replace("\\", "/"),
                         "archive": str(archive.relative_to(root)).replace("\\", "/"), "textures": texs,
                         "skinned": m["skinned"], "surfaces": m["surfaces"], "verts": m["verts"], "tris": m["tris"]})
     (dest / "catalog.json").write_text(json.dumps(catalog, indent=1))
+    stale = [p for p in (dest / "textures").glob("*.png") if p.name not in copied]
+    for p in stale:  # left from an earlier build (an old decode or link): nothing refers to it any more
+        p.unlink()
+    if stale:
+        print(f"removed {len(stale)} textures no model uses any more", flush=True)
     counts = {}
     for c in catalog:
         counts[c["category"]] = counts.get(c["category"], 0) + 1
