@@ -50,7 +50,7 @@ def records(s: bytes):
     """Every texture record's fetch constant (DXT1/3/5 and A8R8G8B8), found by the two 0xFFFF0000 words
     that precede it; in record order, which is also the order of the pixel data."""
     out, p = [], s.find(b"\xff\xff\x00\x00\xff\xff\x00\x00")
-    while p >= 0 and p < 0x80000:
+    while p >= 0:
         o = p + 8
         try:
             fc = xenos.parse_fetch_constant(s[o:o + 24])

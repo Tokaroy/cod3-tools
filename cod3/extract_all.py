@@ -23,7 +23,9 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from cod3_kapf import Kapf  # noqa: E402
 from cod3_mesh import find_vertex_buffers, decode as decode_skinned  # noqa: E402
+import apkf  # noqa: E402
 import cod3_textures as T  # noqa: E402
+import xenos_fetch as xenos  # noqa: E402
 from retexture import retexture  # noqa: E402
 
 RIGID = 52
@@ -69,30 +71,22 @@ def gpu_spans(k: Kapf):
 
 
 def textures(data: bytes, tag: str, out: Path):
-    ds = T.descriptors(data)
-    if not ds:
+    """Every texture of the pack, unnamed, at the position its header gives (apkf.py); extract_textures.py
+    writes the same pixels under their real names."""
+    try:
+        lay = apkf.layout(data)
+    except Exception:
         return []
-    first = (ds[-1][0] + 0xFFF) & ~0xFFF
-    best = None
-    for start in range(first, min(first + 0x20000, len(data)), 0x1000):
+    saved = []
+    for i, o in enumerate(o for o in lay.by_tag("TEX") if o.gpu is not None):
         try:
-            sc = T.smooth(T.decode(data, start, ds[0][1])[:, :, :3].astype(int))
+            fc = xenos.parse_fetch_constant(data[o.record + 0x48:o.record + 0x60])
+            img = T.decode(data, o.gpu, fc)
         except Exception:
             continue
-        if best is None or sc < best[0]:
-            best = (sc, start)
-    if best is None:
-        return []
-    pos, sizes, saved = best[1], T.data_sizes(data, len(ds)), []
-    for i, (_, fc) in enumerate(ds):
-        try:
-            img = T.decode(data, pos, fc)
-        except Exception:
-            break
         name = f"{tag}_{i:02d}_{fc.width}x{fc.height}_{fc.format_name}.png"
         Image.fromarray(img, "RGBA").save(out / name)
         saved.append(name)
-        pos += sizes[i] if i < len(sizes) else T.mip_bytes(fc)
     return saved
 
 

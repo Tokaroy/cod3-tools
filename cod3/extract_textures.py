@@ -1,14 +1,14 @@
 """Decode every Call of Duty 3 texture under its real name, from extract_all.py's unpacked packs.
 
-  python -I cod3/extract_textures.py <extracted root> [archive subpath ...] [--redo] [--shard=K/N]
+  python -I cod3/extract_textures.py <extracted root> [archive subpath ...] [--redo] [--shard=K/N] [--no-index]
 Writes <archive>/textures_named/<name>.png and textures.json (name, pack, size, format), and
 <root>/texture_index.json mapping every texture name to its best (largest) PNG across the disc.
 
 Texture records: two 0xFFFF0000 words, then the Xenos fetch constant; the record's name id sits 0x38
-bytes before the fetch constant (cod3_xemesh.texture_names). The pack header lists every GPU allocation
-in order as (record, record size, GPU size) - textures have 0x60-byte records - and the GPU data start at
-a 64 KB boundary, so each texture's position follows exactly (exact_layout). If that list can't be
-matched, each texture is looked for near where the previous one ended (the most image-like decode).
+bytes before the fetch constant (cod3_xemesh.texture_names). Each texture's pixel data position comes
+straight from the pack header (apkf.py: records and GPU data laid out in header order - exact for every
+texture record on the disc). Only if a header can't be read does the old guesswork run: the allocation
+list matched to tile seams (exact_layout), else a search near where the previous texture ended.
 """
 import dataclasses
 import json
@@ -22,8 +22,10 @@ import numpy as np
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import apkf  # noqa: E402
 import cod3_textures as T  # noqa: E402
 import cod3_xemesh as X  # noqa: E402
+import xenos_fetch as xenos  # noqa: E402
 
 
 def image_score(d, at, fc):
@@ -196,18 +198,46 @@ def safe(name):
     return re.sub(r"[^A-Za-z0-9_.$-]", "_", name)
 
 
+def header_textures(d):
+    """(data0, [(fetch constant position, fetch constant)], [pixel data offset]) from the pack header
+    (apkf.py) - exact; None if the header can't be read."""
+    try:
+        lay = apkf.layout(d)
+    except Exception:
+        return None
+    recs, at = [], []
+    for o in lay.by_tag("TEX"):
+        p = o.record + 0x48
+        if o.gpu is None or d[p - 8:p] != b"\xff\xff\x00\x00\xff\xff\x00\x00":
+            continue  # no pixel data (render targets and the like)
+        try:
+            fc = xenos.parse_fetch_constant(d[p:p + 24])
+        except Exception:
+            continue
+        if fc.format_code in (6, 18, 19, 20):
+            recs.append((p, fc))
+            at.append(o.gpu)
+    return lay.data0, recs, at
+
+
 def export_archive(archive: Path):
     out = archive / "textures_named"
     out.mkdir(exist_ok=True)
     listing = []
     for path in sorted((archive / "packs").glob("*.bin")):
         d = path.read_bytes()
-        recs = T.records(d)
-        if not recs:
-            continue
-        data0 = X.find_data0(d) or X.data0_from_textures(d, [p for p, _ in recs])
+        header = header_textures(d)
+        if header is not None and header[1]:
+            data0, recs, exact = header
+            placed = "header"
+        else:
+            recs = T.records(d)
+            if not recs:
+                continue
+            data0 = X.find_data0(d) or X.data0_from_textures(d, [p for p, _ in recs])
+            exact = exact_layout(d, recs, data0)
+            placed = "exact" if exact is not None else "searched"
         names = X.texture_names(d, data0, [p for p, _ in recs])
-        exact = exact_layout(d, recs, data0)
         sizes = T.data_sizes(d, len(recs))
         pos = (recs[-1][0] + 0xFFF) & ~0xFFF
         for i, (p, fc) in enumerate(recs):
@@ -231,7 +261,7 @@ def export_archive(archive: Path):
                 fn = f"{safe(name)}__{path.stem}_{i}.png"
             Image.fromarray(img, "RGBA").save(out / fn)
             listing.append({"name": name, "file": fn, "pack": path.stem, "width": fc.width, "height": fc.height,
-                            "format": fc.format_name, "placed": "exact" if exact is not None else "searched"})
+                            "format": fc.format_name, "placed": placed})
             pos = at + (sizes[i] if i < len(sizes) else T.mip_bytes(fc))
     (archive / "textures.json").write_text(json.dumps(listing, indent=1))
     return listing
@@ -303,20 +333,25 @@ def build_index(root: Path, workers=6):
       2. more copies agreeing exactly (16x16 thumbnails);
       3. more related copies, then not clearly more damaged than the cleanest copy of the name, then the
          least noisy, then the largest.
-    Plain noise (score > 0.9) is never used. Also writes texture_scores.json and texture_stripes.json."""
+    Plain noise (score > 0.9) is never used - except for copies placed from the pack header, which are exact:
+    there a high score just means a fine-grained surface (asphalt, gravel, rust), not a bad decode. Also writes
+    texture_scores.json, texture_stripes.json and texture_exact.json (copies placed from the header)."""
     from multiprocessing import Pool
     copies = []
     for lst in root.rglob("textures.json"):
         for t in json.loads(lst.read_text()):
-            copies.append((t["name"].lower(), lst.parent / "textures_named" / t["file"], t["width"] * t["height"]))
+            copies.append((t["name"].lower(), lst.parent / "textures_named" / t["file"], t["width"] * t["height"],
+                           t.get("placed") == "header"))
     with Pool(workers) as pool:
         stats = pool.map(texture_stats, [c[1] for c in copies], chunksize=32)
-    groups, table, striped = {}, {}, {}
-    for (key, path, area), (sc, thumb, st, hashes) in zip(copies, stats):
+    groups, table, striped, exact = {}, {}, {}, []
+    for (key, path, area, header), (sc, thumb, st, hashes) in zip(copies, stats):
         rel = str(path.relative_to(root)).replace("\\", "/")
         table[rel] = sc
         striped[rel] = round(st, 4)
-        if thumb is None or (sc is not None and sc > 0.9):
+        if header:
+            exact.append(rel)
+        if thumb is None or (sc is not None and sc > 0.9 and not header):
             continue
         groups.setdefault(key, []).append((rel, sc, area, thumb, st, hashes))
     index = {}
@@ -348,13 +383,14 @@ def build_index(root: Path, workers=6):
     (root / "texture_index.json").write_text(json.dumps(dict(sorted(index.items())), indent=0))
     (root / "texture_scores.json").write_text(json.dumps(table, indent=0))
     (root / "texture_stripes.json").write_text(json.dumps(striped, indent=0))
+    (root / "texture_exact.json").write_text(json.dumps(sorted(exact), indent=0))
     return len(index)
 
 
 if __name__ == "__main__":
     redo = "--redo" in sys.argv
     shard = next((a for a in sys.argv[1:] if a.startswith("--shard=")), None)  # --shard=K/N: every N-th archive
-    args = [a for a in sys.argv[1:] if a != "--redo" and not a.startswith("--shard=")]
+    args = [a for a in sys.argv[1:] if a not in ("--redo", "--no-index") and not a.startswith("--shard=")]
     root = Path(args[0])
     targets = [root / a for a in args[1:]] or sorted(p.parent for p in root.rglob("manifest.json"))
     if shard:
@@ -369,4 +405,7 @@ if __name__ == "__main__":
             print(f"{a.relative_to(root)}: {len(got)} textures ({time.time() - t0:.0f} s)", flush=True)
         except Exception as e:
             print(f"{a.relative_to(root)}: FAILED {e!r}", flush=True)
-    print(f"Done: {build_index(root)} unique texture names", flush=True)
+    if "--no-index" in sys.argv:  # parallel shards: build the index once, after all of them
+        print("Done (index not rebuilt)", flush=True)
+    else:
+        print(f"Done: {build_index(root)} unique texture names", flush=True)

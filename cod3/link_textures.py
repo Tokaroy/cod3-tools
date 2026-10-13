@@ -387,15 +387,18 @@ if __name__ == "__main__":
     (root / "texture_index_bound.json").write_text(json.dumps(extra, indent=0))
     index = {**index, **extra}
     targets = [root / a for a in sys.argv[2:]] or sorted(p.parent.parent for p in root.rglob("models/models.json"))
+    # copies placed from the pack header (apkf.py) are exact: never treated as noise or decoding damage
+    exact = set(json.loads((root / "texture_exact.json").read_text())) if (root / "texture_exact.json").exists() else set()
     copies = {}  # texture name -> every archive's usable copy (relative paths), least noisy first
-    for path, noise in sorted(((k, v) for k, v in scores.items() if v is not None and v <= 0.9), key=lambda kv: kv[1]):
+    for path, noise in sorted(((k, v) for k, v in scores.items() if v is not None and (v <= 0.9 or k in exact)),
+                              key=lambda kv: kv[1]):
         copies.setdefault(Path(path).stem.lower(), []).append(path)
     # a colour texture whose chosen copy is mostly decoding damage (a pack whose layout came out wrong):
     # another archive's clean copy instead, or none - no texture beats a sheet of noise
-    damage = texture_damage(root, sorted({index[n] for n in index if is_colour(n)} |
-                                         {c for n, cs in copies.items() if is_colour(n) for c in cs[:8]}))
+    damage = texture_damage(root, sorted(({index[n] for n in index if is_colour(n)} |
+                                          {c for n, cs in copies.items() if is_colour(n) for c in cs[:8]}) - exact))
     dropped = 0
-    for n in [n for n in index if is_colour(n) and damage.get(index[n], 0) > 0.5]:
+    for n in [n for n in index if is_colour(n) and index[n] not in exact and damage.get(index[n], 0) > 0.5]:
         clean = [c for c in copies.get(n, []) if damage.get(c, 1) < 0.1]
         if clean:
             index[n] = clean[0]
@@ -403,7 +406,7 @@ if __name__ == "__main__":
             del index[n]
             dropped += 1
     for n in copies:
-        copies[n] = [c for c in copies[n] if damage.get(c, 0) <= 0.5]
+        copies[n] = [c for c in copies[n] if c in exact or damage.get(c, 0) <= 0.5]
     colour = sorted(n for n in colour if n in index)
     print(f"{dropped} colour textures dropped: every copy is mostly decoding damage", flush=True)
     shared = global_bindings(root, index)

@@ -1,36 +1,3 @@
 {
- "_textures": {
-  "of_c_pnzcrew_body_c": {
-   "file": "repaired/sp/crssrds/zn09/textures_named/of_c_pnzcrew_body_c.png",
-   "note": "only copy on the disc has a striped/noisy band at the bottom (the tank crew's shins); repaired with repair_texture.py"
-  },
-  "of_c_wrmcht_m_helm2_c": {
-   "file": "repaired/sp/mace2/wehr/textures_named/of_c_wrmcht_m_helm2_c.png",
-   "note": "only copy has a noise block and stripes; repaired with repair_texture.py"
-  }
- },
- "c_wrmcht2_ng_lod2_helm_2.xemesh": {
-  "surfaces": {
-   "0": {
-    "texture": "of_c_wrmcht_helm1_c"
-   }
-  },
-  "note": "its own of_c_wrmcht2_helm1_c survives only as scrambled data (one copy, sp/fuelplnt); the regular Wehrmacht helmet sheet instead"
- },
- "c_wrmcht2_ng_lod2_helm_3.xemesh": {
-  "surfaces": {
-   "0": {
-    "texture": "of_c_wrmcht_helm2_c"
-   }
-  },
-  "note": "its own of_c_wrmcht2_helm2_c survives only as scrambled data (one copy, sp/fuelplnt); the regular Wehrmacht helmet sheet instead"
- },
- "c_wrmcht_m_ng_lod2_helm_3.xemesh": {
-  "surfaces": {
-   "0": {
-    "texture": "of_c_wrmcht_m_helm1_c"
-   }
-  },
-  "note": "its own of_c_wrmcht_m_helm2_c is decoding noise where this helmet's UVs land (one copy, sp/mace2/wehr); the matching helmet 1 sheet instead"
- }
+ "_textures": {}
 }
