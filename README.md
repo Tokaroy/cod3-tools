@@ -4,6 +4,13 @@ Tools and format notes for extracting **Call of Duty 3 (Xbox 360)** assets (mode
 skeletons) from your own copy of the game, plus tools that check the results against what the game
 actually draws.
 
+> **⚠️ Work in progress: not everything here is correct yet.**
+> These tools are unfinished and the output still has known errors. Some textures decode from the wrong
+> spot or carry decoding damage, several vehicles can't be assembled, and animations and vegetation aren't
+> extracted at all. Only part of the geometry has been checked against the running game. Don't treat any
+> output as verified unless the "Status" table below says so. **Help from others is very welcome:** see
+> [Help wanted](#help-wanted).
+
 **No game files are included or distributed here.** You need your own disc, extracted to a folder
 (the files `default.xex`, `codmp_xenonf.xex`, `sp/`, `mp/` ...).
 
@@ -28,6 +35,22 @@ pack decodes as **the right kind of image with its pieces in the wrong places** 
 other parts of the uniform), which image statistics cannot detect. `uv_refit.py` catches this by checking
 where the models' UVs land; a few packs still give several textures the same position. If you know how
 the pack header really describes texture placement, please open an issue.
+
+## Help wanted
+
+This is a one-person project and a lot of it is still guesswork checked by eye. If you know Call of Duty 3,
+Treyarch's Xbox 360 formats or the Xenos GPU, any of these would help a lot:
+
+- **Texture placement:** how an asset pack's header says where each texture's pixels start (see above).
+  This is the biggest source of wrong textures.
+- **Vehicle skeletons:** where the WC51, Harley, Kübelwagen, M5 Stuart, Tiger I, Panther, Kangaroo and
+  Sherman M4A3 get their part positions, if not from a `.xeskel`.
+- **`.xeanim` animations:** the compression and the bone tracks.
+- **SpeedTree `.spt`:** the version COD3 uses, and how its trees and grass are built.
+- **Checking results:** captures (Xenia + RenderDoc) of levels and vehicles not covered yet, or reports of
+  models and textures that look wrong next to the game.
+
+Please open an issue or a pull request, even for partial findings or a "this looks off" report.
 
 ## Requirements
 
