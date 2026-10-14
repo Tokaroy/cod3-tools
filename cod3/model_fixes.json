@@ -315,9 +315,10 @@
  "_parts": {
   "w_ge_mg42.xemesh": {
    "stand": {
-    "rotate": [
+    "move": [
      0,
-     180
+     0,
+     -13.1
     ]
    }
   },
@@ -326,12 +327,13 @@
     "hide": true
    }
   },
-  "_note": "MG42: no skeleton places its bipod ('stand'); it is stored upright (legs up) at its pivot under the muzzle. In-game (IMFDB screenshots) it hangs below the barrel, so it is turned 180 degrees about the barrel axis - an editorial fix. The no-bipod model still carries the stand; it is left out. The .30 cal turret model stores its bipod the same way (legs up, 33 cm above the barrel) and gets the same turn.",
+  "_note": "MG42 and .30 cal turret: no skeleton places the bipod ('stand'). It is stored standing as on the ground - hinge 13.1 in up, feet spread at the barrel's height - so it is lowered by its height: the hinge meets the barrel and the feet reach down (an earlier 180-degree turn put it upside down, hinge at the bottom). The no-bipod MG42 still carries the stand; it is left out.",
   "w_us_30cal_turret.xemesh": {
    "stand": {
-    "rotate": [
+    "move": [
      0,
-     180
+     0,
+     -13.1
     ]
    }
   }

@@ -109,7 +109,7 @@ def header_bases(d, data0, groups):
 HEADER_STATS = {"header": 0, "searched": 0, "differ": 0}
 
 
-# hand-checked part fixes (model_fixes.json "_parts"): {model: {part: {"rotate": [axis, degrees]} | {"hide": true}}}
+# hand-checked part fixes (model_fixes.json "_parts"): {model: {part: {"rotate": [axis, degrees], "move": [x, y, z]} | {"hide": true}}}
 _FIXES_FILE = Path(__file__).resolve().parent / "model_fixes.json"
 PART_FIXES = {k.lower(): v for k, v in (json.loads(_FIXES_FILE.read_text()).get("_parts", {})
                                          if _FIXES_FILE.exists() else {}).items()}
@@ -240,6 +240,8 @@ def export_archive(archive: Path):
                         R[i, i] = R[j, j] = np.cos(a)
                         R[i, j], R[j, i] = -np.sin(a), np.sin(a)
                         m["pos"] = m["pos"] @ R.T
+                    if "move" in pfix:  # [x, y, z] in the game's inches (z up)
+                        m["pos"] = m["pos"] + np.asarray(pfix["move"], float)
                     parts.append(m)
                     try:
                         mat = X.material(d, data0, s["material"], names)
