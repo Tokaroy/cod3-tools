@@ -71,6 +71,8 @@ def drop_hulls(lines, collision=()):
     return out
 
 
+_FIXES = Path(__file__).resolve().parent / "model_fixes.json"
+VARIANTS = {k.lower(): v for k, v in (json.loads(_FIXES.read_text()).get("_variants", {}) if _FIXES.exists() else {}).items()}
 _ALPHA = {}
 
 
@@ -115,25 +117,35 @@ def main():
         obj = [f"mtllib {out.stem}.mtl" if l.startswith("mtllib") else l for l in obj]
         collision = {k for k, x in enumerate(links_cache[archive].get(m["name"], [])) if x.get("how") == "collision"}
         obj = drop_hulls(obj, collision)
-        out.write_text("\n".join(obj) + "\n")
-        mtl = []
-        for k in range(m["surfaces"]):
-            mtl += [f"newmtl s{k}", "Kd 1 1 1"]
-            t = texs[k] if k < len(texs) else None
-            if t and t in index:
-                src = files[k] if k < len(files) and files[k] else index[t]
-                fn = re.sub(r"[^A-Za-z0-9_.$-]", "_", t) + ("" if src == index[t] else
-                     "__" + re.sub(r"[^A-Za-z0-9_]", "_", src.split("/textures_named/")[0])) + ".png"
-                if fn not in copied:
-                    shutil.copyfile(root / src, dest / "textures" / fn)
-                    copied.add(fn)
-                mtl.append(f"map_Kd ../textures/{fn}")
-                if see_through(dest / "textures" / fn):  # propeller discs, camo nets, foliage
-                    mtl.append(f"map_d ../textures/{fn}")
-        out.with_suffix(".mtl").write_text("\n".join(mtl) + "\n")
-        catalog.append({"name": key, "category": cat, "file": str(out.relative_to(dest)).replace("\\", "/"),
-                        "archive": str(archive.relative_to(root)).replace("\\", "/"), "textures": texs,
-                        "skinned": m["skinned"], "surfaces": m["surfaces"], "verts": m["verts"], "tris": m["tris"]})
+        # the model as linked, plus any hand-listed variants (model_fixes.json "_variants": a copy with some
+        # textures swapped, e.g. the German multiplayer flag with and without its flag texture)
+        versions = [("", texs, files)] + [
+            (f"__{v}", [swap.get(t, t) for t in texs], [f if swap.get(t, t) == t else None for t, f in zip(texs, files)])
+            for v, swap in VARIANTS.get(key, {}).items()]
+        for suffix, vtexs, vfiles in versions:
+            vout = out.with_name(out.stem + suffix + ".obj")
+            vout.write_text("\n".join(f"mtllib {vout.stem}.mtl" if l.startswith("mtllib") else l for l in obj) + "\n")
+            mtl = []
+            for k in range(m["surfaces"]):
+                mtl += [f"newmtl s{k}", "Kd 1 1 1"]
+                t = vtexs[k] if k < len(vtexs) else None
+                if t and t in index:
+                    src = vfiles[k] if k < len(vfiles) and vfiles[k] else index[t]
+                    fn = re.sub(r"[^A-Za-z0-9_.$-]", "_", t) + ("" if src == index[t] else
+                         "__" + re.sub(r"[^A-Za-z0-9_]", "_", src.split("/textures_named/")[0])) + ".png"
+                    if fn not in copied:
+                        shutil.copyfile(root / src, dest / "textures" / fn)
+                        copied.add(fn)
+                    mtl.append(f"map_Kd ../textures/{fn}")
+                    if see_through(dest / "textures" / fn):  # propeller discs, camo nets, foliage
+                        mtl.append(f"map_d ../textures/{fn}")
+            vout.with_suffix(".mtl").write_text("\n".join(mtl) + "\n")
+            stem, ext = key.rsplit(".", 1)
+            catalog.append({"name": f"{stem}{suffix}.{ext}", "category": cat,
+                            "file": str(vout.relative_to(dest)).replace("\\", "/"),
+                            "archive": str(archive.relative_to(root)).replace("\\", "/"), "textures": vtexs,
+                            "skinned": m["skinned"], "surfaces": m["surfaces"], "verts": m["verts"], "tris": m["tris"],
+                            **({"variant_of": key} if suffix else {})})
     (dest / "catalog.json").write_text(json.dumps(catalog, indent=1))
     stale = [p for p in (dest / "textures").glob("*.png") if p.name not in copied]
     for p in stale:  # left from an earlier build (an old decode or link): nothing refers to it any more

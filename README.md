@@ -21,9 +21,9 @@ actually draws.
 | Archives (`.cod`) | Unpacked fully (KAPF container, LZO1X chunks, APKF asset packs). |
 | Asset pack layout | **Exact, from the pack header** (`apkf.py`): where every record and every block of GPU data sits. Checked on all 34,869 texture records on the disc; every one of the 30,386 mesh blocks is placed from it too (each checked against its surfaces' stored bounds). |
 | Meshes (`.xemesh`, `.xecell`) | Read from the game's own surface records, at the GPU position the pack header gives (an earlier search could land a vertex or two off and scramble the triangles). Verified **exact** against the running game for every model captured so far (47 models in Mayenne multiplayer, including world geometry and a multi-part weapon viewmodel). Not every model has been captured yet. |
-| Multi-part models | Placed from animation skeletons (`.xeskel` rest pose, computed by running the title's own skeleton code in an emulator). Weapons are posed with the first frame of their own idle animation when it has been decoded, so animated parts sit where the game holds them (a bazooka's rocket in the tube); parts the idle pose parks away from the gun (a spent shell) are left out and listed as `hidden` in `models.json`. Several vehicles have **no skeleton anywhere on the disc**, so their parts can't be placed yet (WC51, Harley, Kübelwagen, M5 Stuart, Tiger I, Panther, Kangaroo, Sherman M4A3). |
+| Multi-part models | Placed from animation skeletons (`.xeskel` rest pose, computed by running the title's own skeleton code in an emulator). Weapons are posed with the first frame of their own idle animation when it has been decoded, so animated parts sit where the game holds them (a bazooka's rocket in the tube); parts the idle pose parks away from the gun (a spent shell) are left out and listed as `hidden` in `models.json`. A part with a numbered bone chain after it (a .30 cal's belt: `tag_b`, `tag_b01` ... `tag_b18`) is drawn at every bone of the chain. Several vehicles have **no skeleton anywhere on the disc**, so their parts can't be placed yet (WC51, Harley, Kübelwagen, M5 Stuart, Tiger I, Panther, Kangaroo, Sherman M4A3). |
 | Textures (`.xetex`) | Xenos-tiled DXT1/DXT3/DXT5/A8R8G8B8, byte-swapped, each at the exact position the pack header gives. Compared with a community HD set made from correctly decoded originals, the character and weapon textures match at 0.95 on average (most at 0.99-1.00). |
-| Texture → material links | Mostly from the material records; soldier heads/bodies are filled in at runtime from placeholders, which the linker resolves the same way. 99.4% of surfaces get a texture. **A few models still get the wrong texture or none** (e.g. the C-47, a Sherman wreck, a Flakvierling variant). |
+| Texture → material links | Mostly from the material records; soldier heads/bodies are filled in at runtime from placeholders, which the linker resolves the same way. Lower detail levels (LODs) take their texture from a sibling LOD whose choice is backed by a record, so a helmet looks the same at every distance. 99.4% of surfaces get a texture. **A few models still get the wrong texture or none** (e.g. the C-47, a Sherman wreck, a Flakvierling variant). |
 | Sounds (`.wbk`, Treyarch NSLB) | Extracted with names through vgmstream. |
 | Animations (`.xeanim`) | Decoded by running the game's own decoder code in an emulator (`cod3_anim.py`, `extract_anims.py`; needs the unpacked `default.xex`). The compressed format itself isn't written down yet. |
 | SpeedTree vegetation (`.spt`) | **Not extracted yet** (trees/grass are drawn from these, not from `.xemesh`). |
@@ -77,12 +77,18 @@ python -I cod3/relink_all.py <work>/models <work>/catalog [--models] [--index]  
 ```
 
 Long steps take `--shard=K/N` to run in parallel. Per-model corrections found by eye go in
-`cod3/model_fixes.json` (applied by `link_textures.py`).
+`cod3/model_fixes.json`: surface textures (applied by `link_textures.py`), `_parts` (turn or hide a part of a
+multi-part model, applied by `extract_models.py`) and `_variants` (extra catalog copies of a model with a texture
+swapped, written by `catalog_models.py`).
 
 Other tools:
 
 - `assemble_characters.py` builds whole generic soldiers from body/head/helmet/gear pieces.
 - `render_review.py`, `render_models.py`, `render_gallery.py` render review sheets (software renderer).
+- `contact_sheets.py <catalog> <out> [category ...]` renders picture sheets of a whole catalog category
+  (characters, soldiers, weapons, vehicles, props, scenery, effects), 30 models per sheet.
+- `catalog_prop.py <catalog obj> <out .lgo>` turns a catalog model into a textured rigid prop in the simple
+  LGO1 format (for use in a Unity mod).
 - `apkf.py` reads an asset pack's header and gives the exact position of every record and GPU block.
 - `reextract_textures.py` re-decodes every texture (4 processes) and rebuilds the index once;
   `rebuild_index.py` rebuilds only the index.

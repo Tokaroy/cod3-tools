@@ -216,6 +216,11 @@ class ArchiveSkeletons:
         out = {n: pose[n] for n in want if n in pose}
         # wheel bones too: a vehicle draws its one wheel model at every tag_wheel_* bone
         out.update({n: v for n, v in pose.items() if n.startswith("tag_wheel") and n not in out})
+        # numbered chains after a part (a .30 cal's belt: tag_b, tag_b01 ... tag_b18): the part is drawn at each
+        for part in want:
+            chain = {n: v for n, v in pose.items() if n not in out and re.fullmatch(re.escape(part) + r"\d+", n)}
+            if len(chain) >= 3:
+                out.update(chain)
         return out
 
 

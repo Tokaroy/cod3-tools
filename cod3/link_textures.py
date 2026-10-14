@@ -217,11 +217,36 @@ def best_copy(tex, um, root, index, copies):
     return alt if cover(alt) > c0 + 0.02 else here
 
 
+STRONG = ("bound", "sibling", "runtime", "fix")  # texture choices backed by the game's records (or by hand)
+
+
+def lod_share(results, index):
+    """The detail levels of one model (c_x_ng_lod2_helm / lod3 / lod4) share their textures in the game, but
+    only some levels' material records name them. A surface whose texture was only guessed (by name or by
+    UV fit) takes the one a sibling level's same material gets from the records."""
+    def norm(n):
+        return re.sub(r"lod\d", "lod#", (n or "").lower())
+    known = {}  # (model family, material) -> (texture, copy)
+    for m, mats, chosen in sorted(results, key=lambda r: norm(r[0]["name"]) + r[0]["name"].lower()):
+        fam = norm(short(m["name"]))
+        for k, (tex, how, copy) in enumerate(chosen):
+            if tex and how in STRONG:
+                known.setdefault((fam, norm(mats[k].get("name")) or k), (tex, copy))
+    for m, mats, chosen in results:
+        fam = norm(short(m["name"]))
+        for k, (tex, how, copy) in enumerate(chosen):
+            if how in STRONG or how == "collision":
+                continue
+            got = known.get((fam, norm(mats[k].get("name")) or k))
+            if got and got[0] != tex:
+                chosen[k] = (got[0], "lod", got[1] or index.get(got[0]))
+
+
 def link_archive(archive: Path, root: Path, index: dict, colour: list, shared=None, copies=None):
     models = archive / "models"
     listing = json.loads((models / "models.json").read_text())
     pack_names = json.loads((models / "pack_names.json").read_text()) if (models / "pack_names.json").exists() else {}
-    links = {}
+    links, results = {}, []
     for m in listing:
         names_here = [n.lower() for n in pack_names.get(m["pack"], [])]
         own = set(names_here)
@@ -353,6 +378,9 @@ def link_archive(archive: Path, root: Path, index: dict, colour: list, shared=No
                 elif tex in TEXTURE_FIXES:
                     copy = TEXTURE_FIXES[tex]
                 chosen[k] = (tex, "fix", copy)
+        results.append((m, mats, chosen))
+    lod_share(results, index)
+    for m, mats, chosen in results:
         lines = []
         for k, (tex, _, copy) in enumerate(chosen):
             lines += [f"newmtl s{k}", "Kd 1 1 1"]

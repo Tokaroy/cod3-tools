@@ -95,6 +95,11 @@ def header_bases(d, data0, groups):
 HEADER_STATS = {"header": 0, "searched": 0, "differ": 0}
 
 
+# hand-checked part fixes (model_fixes.json "_parts"): {model: {part: {"rotate": [axis, degrees]} | {"hide": true}}}
+_FIXES_FILE = Path(__file__).resolve().parent / "model_fixes.json"
+PART_FIXES = {k.lower(): v for k, v in (json.loads(_FIXES_FILE.read_text()).get("_parts", {})
+                                         if _FIXES_FILE.exists() else {}).items()}
+
 PARKED_MARGIN = 6.0  # inches
 
 
@@ -161,6 +166,7 @@ def export_archive(archive: Path):
                 if part and part not in placement and base in placement:
                     placement[part] = placement[base]
             wheel_src = None  # (a wheel part in its bone's space, its index) to repeat at the other wheel bones
+            chain_src = {}  # part -> (it in its bone's space, its index, chain bones): a weapon's belt of rounds
             for w, g in itertools.groupby(surfs, key=lambda s: s["object"]):
                 g = list(g)
                 if w in lower_lods:
@@ -189,6 +195,9 @@ def export_archive(archive: Path):
                         R, t = placement[part_of[w]]
                         if part_of[w].startswith("tag_wheel") and wheel_src is None:
                             wheel_src = (dict(m), mat_index_next := len(parts))
+                        chain = [b for b in placement if re.fullmatch(re.escape(part_of[w]) + r"\d+", b)]
+                        if len(chain) >= 3 and skeletons.posed_by_idle and part_of[w] not in chain_src:
+                            chain_src[part_of[w]] = (dict(m), len(parts), chain)
                         c = m["pos"].mean(0)
                         # some models (truck and jeep wheels) already store a part where its bone is: only
                         # move parts whose geometry sits around their own origin, i.e. in bone space
@@ -202,6 +211,17 @@ def export_archive(archive: Path):
                     elif DEBUG_PARTS and DEBUG_PARTS in name.lower():
                         print(f"    {str(part_of.get(w)):24} (no bone) {np.round(m['pos'].min(0), 1)}..{np.round(m['pos'].max(0), 1)}")
                     m["part"] = part_of.get(w)
+                    pfix = PART_FIXES.get(name.lower(), {}).get(part_of.get(w) or "", {})
+                    if pfix.get("hide"):
+                        continue
+                    if "rotate" in pfix:  # [axis 0-2, degrees] about the part's own origin (its pivot)
+                        ax, deg = pfix["rotate"]
+                        a = np.radians(deg)
+                        R = np.eye(3)
+                        i, j = [k for k in range(3) if k != ax]
+                        R[i, i] = R[j, j] = np.cos(a)
+                        R[i, j], R[j, i] = -np.sin(a), np.sin(a)
+                        m["pos"] = m["pos"] @ R.T
                     parts.append(m)
                     try:
                         mat = X.material(d, data0, s["material"], names)
@@ -215,6 +235,13 @@ def export_archive(archive: Path):
                 for bone, (R, t) in placement.items():
                     if bone.startswith("tag_wheel") and bone not in have:
                         parts.append(dict(src, pos=src["pos"] @ R + t))
+                        mats.append(mats[k] if k < len(mats) else {"name": None, "textures": {}})
+            have = set(part_of.values())
+            for part, (src, k, chain) in chain_src.items():  # the part again at every bone of its chain
+                for bone in chain:
+                    if bone not in have:
+                        R, t = placement[bone]
+                        parts.append(dict(src, pos=src["pos"] @ R + t, part=part))
                         mats.append(mats[k] if k < len(mats) else {"name": None, "textures": {}})
             hidden = []
             if placement and skeletons.posed_by_idle:

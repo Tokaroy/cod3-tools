@@ -186,5 +186,282 @@
    }
   },
   "note": "name guessing gave the scope's texture; it uses the FG42 world sheet like the scoped world model"
+ },
+ "w_brsmg.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "w_sten_col"
+   }
+  },
+  "note": "a first-person view model linked to its gun's low-detail world sheet (name guessing: the model name doesn't name the gun); its own sheet, checked by eye"
+ },
+ "w_usshot.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "w_shotgun_col"
+   }
+  },
+  "note": "a first-person view model linked to its gun's low-detail world sheet (name guessing: the model name doesn't name the gun); its own sheet, checked by eye"
+ },
+ "w_ussmg_vm.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "w_tommy_c"
+   }
+  },
+  "note": "a first-person view model linked to its gun's low-detail world sheet (name guessing: the model name doesn't name the gun); its own sheet, checked by eye"
+ },
+ "w_bren.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "w_bren_c"
+   }
+  },
+  "note": "a first-person view model linked to its gun's low-detail world sheet (name guessing: the model name doesn't name the gun); its own sheet, checked by eye"
+ },
+ "w_gelmg_vm.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "w_mg34_c"
+   }
+  },
+  "note": "a first-person view model linked to its gun's low-detail world sheet (name guessing: the model name doesn't name the gun); its own sheet, checked by eye"
+ },
+ "w_fg42.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "w_fg42_c"
+   }
+  },
+  "note": "a first-person view model linked to its gun's low-detail world sheet (name guessing: the model name doesn't name the gun); its own sheet, checked by eye"
+ },
+ "w_ge_snip_world.xemesh": {
+  "surfaces": {
+   "0": {
+    "texture": "weapon_kar98_c"
+   },
+   "2": {
+    "texture": "weapon_kar98_c"
+   },
+   "4": {
+    "texture": "weapon_kar98_c"
+   }
+  },
+  "note": "name guessing gave two character body sheets; the rifle is on the Kar98 world sheet like w_ge_rfl_world (the scope keeps w_ge_scope_c)"
+ },
+ "w_m1_world.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "w_m1garand_world_c"
+   }
+  },
+  "note": "name guessing ('m1') gave the M1 grenade launcher sheet; the Garand's own world sheet"
+ },
+ "w_m1_objtv.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "w_m1garand_world_c"
+   }
+  },
+  "note": "name guessing ('m1') gave the M1 grenade launcher sheet; the Garand's own world sheet"
+ },
+ "w_us_smoke_grenade_objtv.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "metal$us_smke_nade_world_c"
+   }
+  },
+  "note": "the smoke grenade's own sheet (as the world model binds), not the grenade launcher's"
+ },
+ "w_ge_rfl_launcher_vm.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "w_k98_wood_color"
+   }
+  },
+  "note": "the German rifle grenade launcher had the American M1 launcher sheet; the K98 first-person sheet it mounts with"
+ },
+ "w_ge_rfl_nade_vm.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "w_k98_wood_color"
+   }
+  },
+  "note": "the German rifle grenade launcher had the American M1 launcher sheet; the K98 first-person sheet it mounts with"
+ },
+ "w_us_nade_objtv.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "w_usnade_world_c"
+   }
+  },
+  "note": "the Mk 2 frag pickup had the white smoke-grenade sheet (name guessing); its own olive frag sheet, as w_us_nade_world binds"
+ },
+ "w_ge_rfl_scope.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "w_k98_scope"
+   }
+  },
+  "note": "the first-person K98's scope uses the first-person scope sheet (w_ge_scope_c is the world rifle's)"
+ },
+ "_variants": {
+  "w_flag3dper_gr.xemesh": {
+   "german": {
+    "cloth_masked$flag_nt_3dp_c": "cloth_masked$of_flag_german"
+   }
+  }
+ },
+ "_parts": {
+  "w_ge_mg42.xemesh": {
+   "stand": {
+    "rotate": [
+     0,
+     180
+    ]
+   }
+  },
+  "w_ge_mg42_nobipod.xemesh": {
+   "stand": {
+    "hide": true
+   }
+  },
+  "_note": "MG42: no skeleton places its bipod ('stand'); it is stored upright (legs up) at its pivot under the muzzle. In-game (IMFDB screenshots) it hangs below the barrel, so it is turned 180 degrees about the barrel axis - an editorial fix. The no-bipod model still carries the stand; it is left out."
+ },
+ "c_caninf_ng_helm1_lod2.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_caninf_helm1_c"
+   }
+  },
+  "note": "no level's record names a texture; name guessing gave helmet 2's sheet - its own helm1 sheet"
+ },
+ "c_maquis_ng_hat_lod2.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_maquis_head1_c"
+   }
+  },
+  "note": "no level's record names a texture; the cap is painted on the Maquis head sheet like other caps (the body sheet left flat grey patches)"
+ },
+ "c_caninf_ng_helm1_lod3.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_caninf_helm1_c"
+   }
+  },
+  "note": "no level's record names a texture; name guessing gave helmet 2's sheet - its own helm1 sheet"
+ },
+ "c_maquis_ng_hat_lod3.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_maquis_head1_c"
+   }
+  },
+  "note": "no level's record names a texture; the cap is painted on the Maquis head sheet like other caps (the body sheet left flat grey patches)"
+ },
+ "c_caninf_ng_helm1_lod4.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_caninf_helm1_c"
+   }
+  },
+  "note": "no level's record names a texture; name guessing gave helmet 2's sheet - its own helm1 sheet"
+ },
+ "c_maquis_ng_hat_lod4.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "c_maquis_head1_c"
+   }
+  },
+  "note": "no level's record names a texture; the cap is painted on the Maquis head sheet like other caps (the body sheet left flat grey patches)"
+ },
+ "pfx_brass_45cal.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "pfx_brass"
+   }
+  },
+  "note": "effect models: their own pfx textures have no _c suffix, so the linker skipped them and guessed (dirt got the German flag's dirty cloth)"
+ },
+ "pfx_brass_9mm.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "pfx_brass"
+   }
+  },
+  "note": "effect models: their own pfx textures have no _c suffix, so the linker skipped them and guessed (dirt got the German flag's dirty cloth)"
+ },
+ "pfx_brass_rifle.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "pfx_brass"
+   }
+  },
+  "note": "effect models: their own pfx textures have no _c suffix, so the linker skipped them and guessed (dirt got the German flag's dirty cloth)"
+ },
+ "pfx_concrete.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "pfx_concrete"
+   }
+  },
+  "note": "effect models: their own pfx textures have no _c suffix, so the linker skipped them and guessed (dirt got the German flag's dirty cloth)"
+ },
+ "pfx_generic.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "pfx_concrete"
+   }
+  },
+  "note": "effect models: their own pfx textures have no _c suffix, so the linker skipped them and guessed (dirt got the German flag's dirty cloth)"
+ },
+ "pfx_dirt_md.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "pfx_dirt"
+   }
+  },
+  "note": "effect models: their own pfx textures have no _c suffix, so the linker skipped them and guessed (dirt got the German flag's dirty cloth)"
+ },
+ "pfx_dirt_sm.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "pfx_dirt"
+   }
+  },
+  "note": "effect models: their own pfx textures have no _c suffix, so the linker skipped them and guessed (dirt got the German flag's dirty cloth)"
+ },
+ "pfx_grass_md.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "pfx_grass"
+   }
+  },
+  "note": "effect models: their own pfx textures have no _c suffix, so the linker skipped them and guessed (dirt got the German flag's dirty cloth)"
+ },
+ "pfx_grass_sm.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "pfx_grass"
+   }
+  },
+  "note": "effect models: their own pfx textures have no _c suffix, so the linker skipped them and guessed (dirt got the German flag's dirty cloth)"
+ },
+ "pfx_wood.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "pfx_wood"
+   }
+  },
+  "note": "effect models: their own pfx textures have no _c suffix, so the linker skipped them and guessed (dirt got the German flag's dirty cloth)"
+ },
+ "pfx_paper_a.xemesh": {
+  "surfaces": {
+   "*": {
+    "texture": "m_gib_paper_a"
+   }
+  },
+  "note": "effect models: their own pfx textures have no _c suffix, so the linker skipped them and guessed (dirt got the German flag's dirty cloth)"
  }
 }
