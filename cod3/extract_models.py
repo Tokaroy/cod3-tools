@@ -24,9 +24,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import apkf  # noqa: E402
 import cod3_parts as PT  # noqa: E402
 import cod3_xemesh as X  # noqa: E402
+from cod3_tuck import Tucker  # noqa: E402
 
 INCH = 0.0254
 MODELS_ROOT = None  # set from the command line: the disc-wide skeleton scan lives there
+_TUCKER = []  # cod3_tuck.Tucker, made on first use (needs MODELS_ROOT and the soldier animations)
 DEBUG_PARTS = __import__("os").environ.get("COD3_DEBUG_PARTS", "").lower()  # print part placement for models with this in their name
 
 
@@ -39,6 +41,18 @@ def pack_files(archive: Path, manifest: dict):
         from extract_all import pack_order
         order = pack_order(Kapf(Path(manifest["archive"])))
     return {i: archive / "packs" / f"{t}.bin" for i, t in enumerate(order) if (archive / "packs" / f"{t}.bin").exists()}
+
+
+def tucker():
+    """Gear tucked in on human characters (cod3_tuck.py); None if the soldier animations aren't extracted."""
+    if not _TUCKER:
+        anims = Path(MODELS_ROOT).parent / "anims" if MODELS_ROOT else None
+        try:
+            _TUCKER.append(Tucker(MODELS_ROOT, anims) if anims and (anims / "soldier" / "index.json").exists() else None)
+        except SystemExit as e:
+            print(f"    ! {e}", flush=True)
+            _TUCKER.append(None)
+    return _TUCKER[0]
 
 
 def safe(name: str):
@@ -191,6 +205,10 @@ def export_archive(archive: Path):
                         continue
                     if m["pos"] is None or not len(m["tris"]) or not np.isfinite(m["pos"]).all():
                         continue
+                    if s.get("palette") and m["bones"] is not None and tucker():
+                        # a human character: its gear on the accessory bones where the game's standing pose
+                        # puts it, not spread out as in the bind pose (cod3_tuck.py)
+                        m["pos"] = tucker().tuck(m["pos"], s["palette"], m["bones"], m["weights"])
                     if part_of.get(w) in placement:  # into the model's space from its bone's
                         R, t = placement[part_of[w]]
                         if part_of[w].startswith("tag_wheel") and wheel_src is None:
@@ -206,10 +224,10 @@ def export_archive(archive: Path):
                             m["pos"] = m["pos"] @ R + t
                         if DEBUG_PARTS and DEBUG_PARTS in name.lower():
                             lo, hi = m["pos"].min(0), m["pos"].max(0)
-                            print(f"    {part_of[w]:24} centre {np.round(c, 1)} bone {np.round(t, 1)} "
+                            print(f"    {name[:-7]:28} {part_of[w]:24} centre {np.round(c, 1)} bone {np.round(t, 1)} "
                                   f"rot-diag {np.round(np.diag(R), 2)} moved={moved} now {np.round(lo, 1)}..{np.round(hi, 1)}")
                     elif DEBUG_PARTS and DEBUG_PARTS in name.lower():
-                        print(f"    {str(part_of.get(w)):24} (no bone) {np.round(m['pos'].min(0), 1)}..{np.round(m['pos'].max(0), 1)}")
+                        print(f"    {name[:-7]:28} {str(part_of.get(w)):24} (no bone) {np.round(m['pos'].min(0), 1)}..{np.round(m['pos'].max(0), 1)}")
                     m["part"] = part_of.get(w)
                     pfix = PART_FIXES.get(name.lower(), {}).get(part_of.get(w) or "", {})
                     if pfix.get("hide"):

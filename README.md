@@ -79,11 +79,15 @@ python -I cod3/relink_all.py <work>/models <work>/catalog [--models] [--index]  
 Long steps take `--shard=K/N` to run in parallel. Per-model corrections found by eye go in
 `cod3/model_fixes.json`: surface textures (applied by `link_textures.py`), `_parts` (turn or hide a part of a
 multi-part model, applied by `extract_models.py`) and `_variants` (extra catalog copies of a model with a texture
-swapped, written by `catalog_models.py`).
+swapped, written by `catalog_models.py`) and `_assemblies` (a vehicle gun on its stand, joined at the offset the
+vehicle's skeleton tags give). The catalog leaves out invisible placeholder models (smaller than 1 cm).
 
 Other tools:
 
 - `assemble_characters.py` builds whole generic soldiers from body/head/helmet/gear pieces.
+- `cod3_tuck.py` (used by `extract_models.py`): the human rig hangs pouches, canteens, shovels and backpacks from
+  accessory bones that the bind pose spreads out from the body (up to 47 cm); characters are written with those
+  bones where the game's standing idle puts them, so the gear sits on the body.
 - `render_review.py`, `render_models.py`, `render_gallery.py` render review sheets (software renderer).
 - `contact_sheets.py <catalog> <out> [category ...]` renders picture sheets of a whole catalog category
   (characters, soldiers, weapons, vehicles, props, scenery, effects), 30 models per sheet.

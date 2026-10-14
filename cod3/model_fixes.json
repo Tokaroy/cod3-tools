@@ -326,7 +326,15 @@
     "hide": true
    }
   },
-  "_note": "MG42: no skeleton places its bipod ('stand'); it is stored upright (legs up) at its pivot under the muzzle. In-game (IMFDB screenshots) it hangs below the barrel, so it is turned 180 degrees about the barrel axis - an editorial fix. The no-bipod model still carries the stand; it is left out."
+  "_note": "MG42: no skeleton places its bipod ('stand'); it is stored upright (legs up) at its pivot under the muzzle. In-game (IMFDB screenshots) it hangs below the barrel, so it is turned 180 degrees about the barrel axis - an editorial fix. The no-bipod model still carries the stand; it is left out. The .30 cal turret model stores its bipod the same way (legs up, 33 cm above the barrel) and gets the same turn.",
+  "w_us_30cal_turret.xemesh": {
+   "stand": {
+    "rotate": [
+     0,
+     180
+    ]
+   }
+  }
  },
  "c_caninf_ng_helm1_lod2.xemesh": {
   "surfaces": {
@@ -463,5 +471,82 @@
    }
   },
   "note": "effect models: their own pfx textures have no _c suffix, so the linker skipped them and guessed (dirt got the German flag's dirty cloth)"
+ },
+ "_assemblies": {
+  "vg_dual_vickers__on_pedestal": {
+   "pieces": [
+    [
+     "vg_dual_vickers_turret.xemesh",
+     [
+      0,
+      0,
+      0
+     ]
+    ],
+    [
+     "vg_dual_vickers.xemesh",
+     [
+      0,
+      1.212,
+      0
+     ]
+    ]
+   ]
+  },
+  "vg_dual_vickers__on_mount": {
+   "pieces": [
+    [
+     "vg_dual_vickers_mount.xemesh",
+     [
+      0,
+      0,
+      0
+     ]
+    ],
+    [
+     "vg_dual_vickers.xemesh",
+     [
+      0,
+      0.208,
+      0
+     ]
+    ]
+   ]
+  },
+  "vg_mg42__on_horch_pole": {
+   "pieces": [
+    [
+     "vg_horch_turret.xemesh",
+     [
+      0,
+      0,
+      0
+     ]
+    ],
+    [
+     "vg_mg42.xemesh",
+     [
+      0.039,
+      1.466,
+      -0.01
+     ]
+    ]
+   ]
+  },
+  "_note": "Vehicle guns and their stands are separate models the game joins at the vehicle's tags. Offsets are the tag distances in catalog metres (x, up, -y of COD): SAS Jeep tag_gunner_turret -> tag_gunner_barrel 1.212 m up (the 1.27 m pedestal), tag_turret -> tag_barrel 0.208 m up (the 22 cm mount); Horch tag_gunner_turret -> tag_gunner_barrel (0.039, 1.466, -0.010) (the 1.45 m pole)."
+ },
+ "w_usrfl_rg_world.xemesh": {
+  "surfaces": {
+   "0": {
+    "texture": "w_m1garand_world_c"
+   },
+   "2": {
+    "texture": "w_m1garand_world_c"
+   },
+   "5": {
+    "texture": "w_m1garand_world_c"
+   }
+  },
+  "note": "the Garand with the rifle-grenade launcher: its rifle surfaces (material ng_rifle) take the Garand's world sheet, as w_m1_world (name guessing gave the launcher sheet; surface 5 had the first-person sheet); the launcher keeps m1_grenadelauncher_c"
  }
 }

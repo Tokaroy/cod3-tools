@@ -13,6 +13,8 @@ import shutil
 import sys
 from pathlib import Path
 
+import numpy as np
+
 LEVELS = ("mp_", "mayenne", "forest", "hostage", "crossroads", "island", "fuelplant", "falaise", "nightdrop",
           "stlambert", "chambois", "blackbaron", "saint", "laisonriver", "mace", "credits", "sky", "shadow")
 WEAPONS = ("w_", "vg_", "bazooka", "lee_enfield", "1903springfield", "g43", "kar98", "m1garand", "thompson",
@@ -72,6 +74,9 @@ def drop_hulls(lines, collision=()):
 
 
 _FIXES = Path(__file__).resolve().parent / "model_fixes.json"
+ASSEMBLIES = {k: v for k, v in (json.loads(_FIXES.read_text()).get("_assemblies", {}) if _FIXES.exists() else {}).items()
+              if not k.startswith("_")}
+PLACEHOLDER = 0.01  # metres: a model smaller than this across is an invisible marker (vg_hullgun: one 0.1 mm triangle)
 VARIANTS = {k.lower(): v for k, v in (json.loads(_FIXES.read_text()).get("_variants", {}) if _FIXES.exists() else {}).items()}
 _ALPHA = {}
 
@@ -117,6 +122,9 @@ def main():
         obj = [f"mtllib {out.stem}.mtl" if l.startswith("mtllib") else l for l in obj]
         collision = {k for k, x in enumerate(links_cache[archive].get(m["name"], [])) if x.get("how") == "collision"}
         obj = drop_hulls(obj, collision)
+        V = np.array([[float(x) for x in l.split()[1:4]] for l in obj if l.startswith("v ")])
+        if len(V) and np.linalg.norm(V.max(0) - V.min(0)) < PLACEHOLDER:
+            continue
         # the model as linked, plus any hand-listed variants (model_fixes.json "_variants": a copy with some
         # textures swapped, e.g. the German multiplayer flag with and without its flag texture)
         versions = [("", texs, files)] + [
@@ -146,7 +154,55 @@ def main():
                             "archive": str(archive.relative_to(root)).replace("\\", "/"), "textures": vtexs,
                             "skinned": m["skinned"], "surfaces": m["surfaces"], "verts": m["verts"], "tris": m["tris"],
                             **({"variant_of": key} if suffix else {})})
+    # stands with their guns on (model_fixes.json "_assemblies"): each piece at its offset (catalog metres) - the
+    # vehicle skeleton's distance from the stand's tag to the gun's, so the gun sits on its stand
+    entries = {c["name"].lower(): c for c in catalog}
+    for name, a in ASSEMBLIES.items():
+        pieces = [(entries.get(k.lower()), off) for k, off in a["pieces"]]
+        if not all(c for c, _ in pieces):
+            print(f"  ! assembly {name}: missing {[k for (k, _), (c, _) in zip(a['pieces'], pieces) if not c]}", flush=True)
+            continue
+        cat = pieces[0][0]["category"]
+        out = dest / cat / f"{name}.obj"
+        lines, mtl, nv, nvt = [f"mtllib {name}.mtl"], [], 0, 0
+        for k, (c, off) in enumerate(pieces):
+            src = (dest / c["file"]).read_text().splitlines()
+            v = [l for l in src if l.startswith("v ")]
+            vt = [l for l in src if l.startswith("vt ")]
+            for l in v:
+                x, y, z = (float(t) for t in l.split()[1:4])
+                lines.append(f"v {x + off[0]:.5f} {y + off[1]:.5f} {z + off[2]:.5f}")
+            lines += vt
+            for l in src:
+                if l.startswith("usemtl"):
+                    lines.append(f"usemtl p{k}_{l.split(None, 1)[1]}")
+                elif l.startswith("g "):
+                    lines.append(f"g p{k}_{l[2:]}")
+                elif l.startswith("f "):
+                    refs = []
+                    for r in l.split()[1:]:
+                        t = r.split("/")
+                        refs.append(f"{int(t[0]) + nv}" + (f"/{int(t[1]) + nvt}" if len(t) > 1 and t[1] else ""))
+                    lines.append("f " + " ".join(refs))
+            for l in (dest / c["file"]).with_suffix(".mtl").read_text().splitlines():
+                mtl.append(f"newmtl p{k}_{l.split(None, 1)[1]}" if l.startswith("newmtl") else l)
+            nv, nvt = nv + len(v), nvt + len(vt)
+        out.write_text("\n".join(lines) + "\n")
+        out.with_suffix(".mtl").write_text("\n".join(mtl) + "\n")
+        catalog.append({"name": f"{name}.xemesh", "category": cat, "file": str(out.relative_to(dest)).replace("\\", "/"),
+                        "archive": pieces[0][0]["archive"], "textures": sum((c["textures"] for c, _ in pieces), []),
+                        "skinned": False, "surfaces": sum(c["surfaces"] for c, _ in pieces),
+                        "verts": sum(c["verts"] for c, _ in pieces), "tris": sum(c["tris"] for c, _ in pieces),
+                        "assembly_of": [c["name"] for c, _ in pieces]})
     (dest / "catalog.json").write_text(json.dumps(catalog, indent=1))
+    listed = {c["file"] for c in catalog}
+    old_models = [p for c in {c["category"] for c in catalog} for p in (dest / c).glob("*.obj")
+                  if f"{c}/{p.name}" not in listed]
+    for p in old_models:  # a model no longer catalogued (an invisible placeholder, a renamed file)
+        p.unlink()
+        p.with_suffix(".mtl").unlink(missing_ok=True)
+    if old_models:
+        print(f"removed {len(old_models)} models no longer catalogued", flush=True)
     stale = [p for p in (dest / "textures").glob("*.png") if p.name not in copied]
     for p in stale:  # left from an earlier build (an old decode or link): nothing refers to it any more
         p.unlink()
